@@ -117,7 +117,7 @@ class AsyncBase(object):
     def __getattribute__(self, name):
         thing = super().__getattribute__(name)
 
-        if name in ('__class__', 'master', 'after', '_register'):
+        if name in ('__class__', 'after', '_register'):
             return thing
 
         if current_thread() == main_thread():
@@ -154,9 +154,24 @@ class AsyncTk(ctk.CTk if HAVE_CTK else tk.Tk, AsyncBase):
         thread.join()
 
 
-class AsyncTkButton(ctk.CTkButton if HAVE_CTK else tk.Button, AsyncBase):
-    pass
+def to_async_widget(widget_cls):
+    """
+    Convert a tkinter or customtkinter widget class into an AsyncBase-derived type.
+
+    Args:
+        widget_cls (type): The original tkinter/customtkinter widget class.
+
+    Returns:
+        type: A new dynamically created async-compatible widget class.
+    """
+    class AsyncWidget(widget_cls, AsyncBase):
+        """Async wrapper for the given widget class."""
+        pass
+
+    # Rename class dynamically
+    AsyncWidget.__name__ = f"AsyncTk{widget_cls.__name__}"
+    return AsyncWidget
 
 
-class AsyncTkLabel(ctk.CTkLabel if HAVE_CTK else tk.Label, AsyncBase):
-    pass
+AsyncTkButton = to_async_widget(ctk.CTkButton if HAVE_CTK else tk.Button)
+AsyncTkLabel = to_async_widget(ctk.CTkLabel if HAVE_CTK else tk.Label)
